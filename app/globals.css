@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ---------------------------------- */
+/* Global Styles */
+/* ---------------------------------- */
+
+html,
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+  font-family: "Inter", sans-serif;
+  scroll-behavior: smooth;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+a {
+  @apply text-blue-600 hover:text-blue-500 transition;
+  text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  @apply font-bold text-gray-900;
+}
+
+p {
+  @apply text-gray-700;
+}
+
+/* Inputs & buttons default */
+input,
+textarea,
+select,
+button {
+  @apply border border-gray-300 rounded-md px-3 py-2 outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+/* Form placeholder styling */
+input::placeholder,
+textarea::placeholder {
+  @apply text-gray-400;
+}
+
+/* Utility classes for consistent padding/margin */
+.container {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Spinner Animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.spinner {
+  @apply border-4 border-t-blue-500 border-gray-200 rounded-full w-8 h-8 animate-spin;
+}
+
+/* ---------------------------------- */
+/* Custom Colors (Optional) */
+/* ---------------------------------- */
+:root {
+  --primary: #1d4ed8; /* blue-700 */
+  --secondary: #f59e0b; /* amber-500 */
 }
