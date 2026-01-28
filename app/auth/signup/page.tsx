@@ -5,64 +5,69 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMockStore } from "@/hooks/useMockStore";
 import { User, Mail, Lock, ArrowRight } from "lucide-react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 export default function SignupPage() {
   const router = useRouter();
   const { addUser } = useMockStore();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-    if (name.trim().length < 2) newErrors.name = "Full name is required.";
-    if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Please enter a valid email address.";
-    if (password.length < 6) newErrors.password = "Password must be at least 6 characters.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const formik = useFormik({
+    initialValues: {
+      name: "",
+      email: "",
+      password: "",
+    },
+    validationSchema: Yup.object({
+      name: Yup.string()
+        .min(2, "Full name must be at least 2 characters")
+        .required("Full name is required"),
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Email is required"),
+      password: Yup.string()
+        .min(6, "Password must be at least 6 characters")
+        .required("Password is required"),
+    }),
+    validateOnChange: true,
+    onSubmit: async (values) => {
+      setLoading(true);
+      setError("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name, email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Signup failed");
-      } else {
-        // ✅ Save to local mock store so it appears in User Management
-        addUser({
-          id: Math.random().toString(36).substr(2, 9),
-          name,
-          email,
-          role: email.includes("admin") ? "admin" : "user",
-          avatar: `https://i.pravatar.cc/150?u=${email}`
+      try {
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(values),
         });
 
-        router.push("/auth/login");
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.message || "Signup failed");
+        } else {
+          // ✅ Save to local mock store so it appears in User Management
+          addUser({
+            id: Math.random().toString(36).substr(2, 9),
+            name: values.name,
+            email: values.email,
+            role: values.email.includes("admin") ? "admin" : "user",
+            avatar: `https://i.pravatar.cc/150?u=${values.email}`
+          });
+
+          router.push("/auth/login");
+        }
+      } catch (err) {
+        setError("An unexpected error occurred. Please try again.");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
+    },
+  });
 
   return (
     <div className="min-h-[80vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -75,62 +80,68 @@ export default function SignupPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-10 px-6 shadow-xl shadow-slate-200/50 border border-slate-100 sm:rounded-[2rem] sm:px-10">
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form className="space-y-5" onSubmit={formik.handleSubmit}>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Full Name</label>
-              <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.name ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+              <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.name && formik.touched.name ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                 }`}>
                 <User className="text-slate-400 shrink-0" size={18} />
                 <input
+                  id="name"
+                  name="name"
                   type="text"
-                  value={name}
-                  onChange={(e) => {
-                    setName(e.target.value);
-                    if (errors.name) setErrors({ ...errors, name: "" });
-                  }}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.name}
                   className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
                   placeholder="John Doe"
                 />
               </div>
-              {errors.name && <p className="mt-1 ml-1 text-xs font-bold text-red-500">{errors.name}</p>}
+              {formik.errors.name && formik.touched.name && (
+                <p className="mt-1 ml-1 text-xs font-bold text-red-500">{formik.errors.name}</p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Email address</label>
-              <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.email ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+              <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.email && formik.touched.email ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                 }`}>
                 <Mail className="text-slate-400 shrink-0" size={18} />
                 <input
+                  id="email"
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors({ ...errors, email: "" });
-                  }}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.email}
                   className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
                   placeholder="name@example.com"
                 />
               </div>
-              {errors.email && <p className="mt-1 ml-1 text-xs font-bold text-red-500">{errors.email}</p>}
+              {formik.errors.email && formik.touched.email && (
+                <p className="mt-1 ml-1 text-xs font-bold text-red-500">{formik.errors.email}</p>
+              )}
             </div>
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Password</label>
-              <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.password ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+              <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.password && formik.touched.password ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                 }`}>
                 <Lock className="text-slate-400 shrink-0" size={18} />
                 <input
+                  id="password"
+                  name="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors({ ...errors, password: "" });
-                  }}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                  value={formik.values.password}
                   className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
                   placeholder="••••••••"
                 />
               </div>
-              {errors.password && <p className="mt-1 ml-1 text-xs font-bold text-red-500">{errors.password}</p>}
+              {formik.errors.password && formik.touched.password && (
+                <p className="mt-1 ml-1 text-xs font-bold text-red-500">{formik.errors.password}</p>
+              )}
             </div>
 
             {error && (
@@ -170,3 +181,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

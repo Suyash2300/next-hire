@@ -1,54 +1,54 @@
 "use client";
 
 import { useMockStore } from "../../../hooks/useMockStore";
-import { Plus, Search, MapPin, Building2, Trash2, Calendar, Briefcase } from "lucide-react";
+import { Plus, Search, MapPin, Building2, Trash2, Calendar, Briefcase, Eye } from "lucide-react";
 import { useState } from "react";
 import { Job } from "../../../types";
+import Link from "next/link";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 export default function JobsPage() {
     const { jobs, addJob, deleteJob, isLoaded } = useMockStore();
     const [searchTerm, setSearchTerm] = useState("");
     const [showForm, setShowForm] = useState(false);
 
-    // Form state
-    const [formData, setFormData] = useState({
-        title: "",
-        company: "",
-        location: "",
-        description: ""
+    const formik = useFormik({
+        initialValues: {
+            title: "",
+            company: "",
+            location: "",
+            description: ""
+        },
+        validationSchema: Yup.object({
+            title: Yup.string()
+                .required("Job title is required"),
+            company: Yup.string()
+                .required("Company name is required"),
+            location: Yup.string()
+                .required("Location is required"),
+            description: Yup.string()
+                .min(10, "Description must be at least 10 characters")
+                .required("Description is required"),
+        }),
+        validateOnChange: true,
+        onSubmit: (values, { resetForm }) => {
+            const newJob: Job = {
+                id: Math.random().toString(36).substr(2, 9),
+                ...values,
+                createdAt: new Date().toISOString()
+            };
+            addJob(newJob);
+            setShowForm(false);
+            resetForm();
+        },
     });
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-    const validateForm = () => {
-        const newErrors: { [key: string]: string } = {};
-        if (!formData.title.trim()) newErrors.title = "Job title is required.";
-        if (!formData.company.trim()) newErrors.company = "Company name is required.";
-        if (!formData.location.trim()) newErrors.location = "Location is required.";
-        if (formData.description.trim().length < 10) newErrors.description = "Description must be at least 10 characters.";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
 
     const filteredJobs = jobs.filter(
         (job) =>
             job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             job.company.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-
-        const newJob: Job = {
-            id: Math.random().toString(36).substr(2, 9),
-            ...formData,
-            createdAt: new Date().toISOString()
-        };
-        addJob(newJob);
-        setShowForm(false);
-        setFormData({ title: "", company: "", location: "", description: "" });
-        setErrors({});
-    };
 
     if (!isLoaded) return <div className="p-8 text-center text-slate-500 font-bold">Loading dashboard...</div>;
 
@@ -80,77 +80,77 @@ export default function JobsPage() {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                            <form onSubmit={formik.handleSubmit} className="space-y-5">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1">Job Title</label>
-                                    <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.title ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                                    <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.title && formik.touched.title ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                                         }`}>
                                         <Briefcase className="text-slate-400 shrink-0" size={18} />
                                         <input
+                                            id="title"
+                                            name="title"
                                             type="text"
                                             placeholder="e.g. Senior Frontend Engineer"
                                             className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
-                                            value={formData.title}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, title: e.target.value });
-                                                if (errors.title) setErrors({ ...errors, title: "" });
-                                            }}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            value={formik.values.title}
                                         />
                                     </div>
-                                    {errors.title && <p className="text-xs font-bold text-red-500 ml-1">{errors.title}</p>}
+                                    {formik.errors.title && formik.touched.title && <p className="text-xs font-bold text-red-500 ml-1">{formik.errors.title}</p>}
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700 ml-1">Company</label>
-                                        <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.company ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                                        <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.company && formik.touched.company ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                                             }`}>
                                             <Building2 className="text-slate-400 shrink-0" size={18} />
                                             <input
+                                                id="company"
+                                                name="company"
                                                 type="text"
                                                 placeholder="TechFlow"
                                                 className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
-                                                value={formData.company}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, company: e.target.value });
-                                                    if (errors.company) setErrors({ ...errors, company: "" });
-                                                }}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                value={formik.values.company}
                                             />
                                         </div>
-                                        {errors.company && <p className="text-xs font-bold text-red-500 ml-1">{errors.company}</p>}
+                                        {formik.errors.company && formik.touched.company && <p className="text-xs font-bold text-red-500 ml-1">{formik.errors.company}</p>}
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700 ml-1">Location</label>
-                                        <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.location ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                                        <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.location && formik.touched.location ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                                             }`}>
                                             <MapPin className="text-slate-400 shrink-0" size={18} />
                                             <input
+                                                id="location"
+                                                name="location"
                                                 type="text"
                                                 placeholder="Remote / City"
                                                 className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
-                                                value={formData.location}
-                                                onChange={(e) => {
-                                                    setFormData({ ...formData, location: e.target.value });
-                                                    if (errors.location) setErrors({ ...errors, location: "" });
-                                                }}
+                                                onChange={formik.handleChange}
+                                                onBlur={formik.handleBlur}
+                                                value={formik.values.location}
                                             />
                                         </div>
-                                        {errors.location && <p className="text-xs font-bold text-red-500 ml-1">{errors.location}</p>}
+                                        {formik.errors.location && formik.touched.location && <p className="text-xs font-bold text-red-500 ml-1">{formik.errors.location}</p>}
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1">Description</label>
                                     <textarea
+                                        id="description"
+                                        name="description"
                                         rows={4}
                                         placeholder="Briefly describe the role requirements..."
-                                        className={`w-full px-5 py-3.5 rounded-2xl border transition-all font-medium resize-none ${errors.description ? "border-red-300 ring-4 ring-red-500/10 focus:border-red-500" : "border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500"
+                                        className={`w-full px-5 py-3.5 rounded-2xl border transition-all font-medium resize-none ${formik.errors.description && formik.touched.description ? "border-red-300 ring-4 ring-red-500/10 focus:border-red-500" : "border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500"
                                             }`}
-                                        value={formData.description}
-                                        onChange={(e) => {
-                                            setFormData({ ...formData, description: e.target.value });
-                                            if (errors.description) setErrors({ ...errors, description: "" });
-                                        }}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.description}
                                     />
-                                    {errors.description && <p className="text-xs font-bold text-red-500 ml-1">{errors.description}</p>}
+                                    {formik.errors.description && formik.touched.description && <p className="text-xs font-bold text-red-500 ml-1">{formik.errors.description}</p>}
                                 </div>
                                 <div className="pt-2 flex gap-3">
                                     <button
@@ -196,9 +196,11 @@ export default function JobsPage() {
                         >
                             <div className="flex justify-between items-start">
                                 <div className="space-y-1">
-                                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                                        {job.title}
-                                    </h3>
+                                    <Link href={`/jobs/${job.id}`}>
+                                        <h3 className="text-lg font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                            {job.title}
+                                        </h3>
+                                    </Link>
                                     <div className="flex items-center gap-4 text-sm text-slate-500 text-sm">
                                         <span className="flex items-center gap-1">
                                             <Building2 size={14} /> {job.company}
@@ -218,6 +220,13 @@ export default function JobsPage() {
                                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
                                         Active
                                     </span>
+                                    <Link
+                                        href={`/jobs/${job.id}`}
+                                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                        title="View Public Listing"
+                                    >
+                                        <Eye size={18} />
+                                    </Link>
                                     <button
                                         onClick={() => deleteJob(job.id)}
                                         className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"

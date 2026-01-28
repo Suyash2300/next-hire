@@ -3,48 +3,49 @@
 import { useMockStore, User } from "../../../hooks/useMockStore";
 import { Plus, Search, Mail, Shield, Trash2, MoreVertical, User as UserIcon } from "lucide-react";
 import { useState } from "react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 export default function UsersPage() {
     const { users, addUser, deleteUser, isLoaded } = useMockStore();
     const [searchTerm, setSearchTerm] = useState("");
     const [showForm, setShowForm] = useState(false);
 
-    // Form state
-    const [formData, setFormData] = useState({
-        name: "",
-        email: "",
-        role: "user" as "user" | "admin"
+    const formik = useFormik({
+        initialValues: {
+            name: "",
+            email: "",
+            role: "user" as "user" | "admin"
+        },
+        validationSchema: Yup.object({
+            name: Yup.string()
+                .min(2, "Full name must be at least 2 characters")
+                .required("Full name is required"),
+            email: Yup.string()
+                .email("Invalid email address")
+                .required("Email is required"),
+            role: Yup.string()
+                .oneOf(["user", "admin"])
+                .required("Role is required"),
+        }),
+        validateOnChange: true,
+        onSubmit: (values, { resetForm }) => {
+            const newUser: User = {
+                id: Math.random().toString(36).substr(2, 9),
+                ...values,
+                avatar: `https://i.pravatar.cc/150?u=${Math.random()}`
+            };
+            addUser(newUser);
+            setShowForm(false);
+            resetForm();
+        },
     });
-    const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-    const validateForm = () => {
-        const newErrors: { [key: string]: string } = {};
-        if (formData.name.trim().length < 2) newErrors.name = "Full name is required.";
-        if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Please enter a valid email address.";
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
 
     const filteredUsers = users.filter(
         (user) =>
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!validateForm()) return;
-
-        const newUser: User = {
-            id: Math.random().toString(36).substr(2, 9),
-            ...formData,
-            avatar: `https://i.pravatar.cc/150?u=${Math.random()}`
-        };
-        addUser(newUser);
-        setShowForm(false);
-        setFormData({ name: "", email: "", role: "user" });
-        setErrors({});
-    };
 
     if (!isLoaded) return <div className="p-8 text-center text-slate-500 font-bold">Loading user database...</div>;
 
@@ -76,49 +77,52 @@ export default function UsersPage() {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-5">
+                            <form onSubmit={formik.handleSubmit} className="space-y-5">
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1">Full Name</label>
-                                    <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.name ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                                    <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.name && formik.touched.name ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                                         }`}>
                                         <UserIcon className="text-slate-400 shrink-0" size={18} />
                                         <input
+                                            id="name"
+                                            name="name"
                                             type="text"
                                             placeholder="Jane Cooper"
                                             className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
-                                            value={formData.name}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, name: e.target.value });
-                                                if (errors.name) setErrors({ ...errors, name: "" });
-                                            }}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            value={formik.values.name}
                                         />
                                     </div>
-                                    {errors.name && <p className="text-xs font-bold text-red-500 ml-1">{errors.name}</p>}
+                                    {formik.errors.name && formik.touched.name && <p className="text-xs font-bold text-red-500 ml-1">{formik.errors.name}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1">Email Address</label>
-                                    <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${errors.email ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                                    <div className={`flex items-center gap-3 px-4 py-3 border rounded-2xl transition-all ${formik.errors.email && formik.touched.email ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                                         }`}>
                                         <Mail className="text-slate-400 shrink-0" size={18} />
                                         <input
+                                            id="email"
+                                            name="email"
                                             type="email"
                                             placeholder="jane@example.com"
                                             className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
-                                            value={formData.email}
-                                            onChange={(e) => {
-                                                setFormData({ ...formData, email: e.target.value });
-                                                if (errors.email) setErrors({ ...errors, email: "" });
-                                            }}
+                                            onChange={formik.handleChange}
+                                            onBlur={formik.handleBlur}
+                                            value={formik.values.email}
                                         />
                                     </div>
-                                    {errors.email && <p className="text-xs font-bold text-red-500 ml-1">{errors.email}</p>}
+                                    {formik.errors.email && formik.touched.email && <p className="text-xs font-bold text-red-500 ml-1">{formik.errors.email}</p>}
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-sm font-bold text-slate-700 ml-1">Role</label>
                                     <select
+                                        id="role"
+                                        name="role"
                                         className="w-full px-5 py-3.5 rounded-2xl border border-slate-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-medium appearance-none"
-                                        value={formData.role}
-                                        onChange={(e) => setFormData({ ...formData, role: e.target.value as "user" | "admin" })}
+                                        onChange={formik.handleChange}
+                                        onBlur={formik.handleBlur}
+                                        value={formik.values.role}
                                     >
                                         <option value="user">User / Candidate</option>
                                         <option value="admin">Administrator</option>

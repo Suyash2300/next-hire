@@ -58,7 +58,7 @@ export default function DashboardPage() {
 
           <div className="space-y-4">
             {jobs.slice(0, 3).map((job) => (
-              <div key={job.id} className="p-4 rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all duration-200 group">
+              <Link key={job.id} href={`/jobs/${job.id}`} className="block p-4 rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-md transition-all duration-200 group">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
@@ -70,7 +70,7 @@ export default function DashboardPage() {
                     Active
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
             {jobs.length === 0 && (
               <p className="text-slate-500 text-sm text-center py-6">No jobs posted yet.</p>

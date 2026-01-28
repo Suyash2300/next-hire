@@ -5,45 +5,45 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogIn, Mail, Lock, ArrowRight } from "lucide-react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
-    if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Please enter a valid email address.";
-    if (!password) newErrors.password = "Password is required.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  const formik = useFormik({
+    initialValues: {
+      email: "",
+      password: "",
+    },
+    validationSchema: Yup.object({
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Email is required"),
+      password: Yup.string()
+        .required("Password is required"),
+    }),
+    validateOnChange: true,
+    onSubmit: async (values) => {
+      setLoading(true);
+      setError("");
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validateForm()) return;
+      const res = await signIn("credentials", {
+        redirect: false,
+        email: values.email,
+        password: values.password,
+      });
 
-    setLoading(true);
-    setError("");
-
-    const res = await signIn("credentials", {
-      redirect: false,
-      email,
-      password,
-    });
-
-    if (res?.error) {
-      // Since it's a mock, we only error if it's explicitly wrong in some way
-      // Here NextAuth might return 'CredentialsSignin'
-      setError("Invalid credentials. Try any email/password.");
-    } else {
-      router.push("/dashboard");
-    }
-    setLoading(false);
-  }
+      if (res?.error) {
+        setError("Invalid credentials. Try any email/password.");
+      } else {
+        router.push("/dashboard");
+      }
+      setLoading(false);
+    },
+  });
 
   return (
     <div className="min-h-[80vh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -57,43 +57,47 @@ export default function LoginPage() {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-10 px-6 shadow-xl shadow-slate-200/50 border border-slate-100 sm:rounded-[2rem] sm:px-10">
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-6" onSubmit={formik.handleSubmit}>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Email address</label>
-                <div className={`flex items-center gap-3 px-4 py-3 search-input-group border rounded-2xl transition-all ${errors.email ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                <div className={`flex items-center gap-3 px-4 py-3 search-input-group border rounded-2xl transition-all ${formik.errors.email && formik.touched.email ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                   }`}>
                   <Mail className="text-slate-400 shrink-0" size={18} />
                   <input
+                    id="email"
+                    name="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (errors.email) setErrors({ ...errors, email: "" });
-                    }}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.email}
                     className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
                     placeholder="name@example.com"
                   />
                 </div>
-                {errors.email && <p className="mt-1 ml-1 text-xs font-bold text-red-500">{errors.email}</p>}
+                {formik.errors.email && formik.touched.email && (
+                  <p className="mt-1 ml-1 text-xs font-bold text-red-500">{formik.errors.email}</p>
+                )}
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Password</label>
-                <div className={`flex items-center gap-3 px-4 py-3 search-input-group border rounded-2xl transition-all ${errors.password ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
+                <div className={`flex items-center gap-3 px-4 py-3 search-input-group border rounded-2xl transition-all ${formik.errors.password && formik.touched.password ? "border-red-300 ring-4 ring-red-500/10" : "border-slate-200 focus-within:ring-4 focus-within:ring-indigo-500/10 focus-within:border-indigo-500"
                   }`}>
                   <Lock className="text-slate-400 shrink-0" size={18} />
                   <input
+                    id="password"
+                    name="password"
                     type="password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (errors.password) setErrors({ ...errors, password: "" });
-                    }}
+                    onChange={formik.handleChange}
+                    onBlur={formik.handleBlur}
+                    value={formik.values.password}
                     className="flex-1 bg-transparent border-none outline-none text-sm font-medium placeholder-slate-400"
                     placeholder="••••••••"
                   />
                 </div>
-                {errors.password && <p className="mt-1 ml-1 text-xs font-bold text-red-500">{errors.password}</p>}
+                {formik.errors.password && formik.touched.password && (
+                  <p className="mt-1 ml-1 text-xs font-bold text-red-500">{formik.errors.password}</p>
+                )}
               </div>
 
               {error && (
@@ -140,3 +144,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
